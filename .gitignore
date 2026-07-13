@@ -1,0 +1,16 @@
+# Java
+target/
+*.class
+*.jar
+
+# Angular
+node_modules/
+dist/
+.angular/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store

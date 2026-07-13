@@ -1,0 +1,1 @@
+Enterprise ecommerce scaffold: Spring Boot 3, MySQL, JPA, JWT, Product, Cart, Checkout, Orders, Admin, React, Bootstrap, Docker.
