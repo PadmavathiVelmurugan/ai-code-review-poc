@@ -142,6 +142,19 @@ pipeline {
         }
 
     }
+    stage('Git Diff Tracking') {
+            steps {
+                sh '''
+                    # Changed from origin/main to HEAD~1 since you are testing directly on main
+                    git diff HEAD~1 HEAD --name-only \
+                    | grep "\\.java$" \
+                    > changed_files.txt || true
+
+                    echo "--- Changed Java Files for AI Review ---"
+                    cat changed_files.txt
+                '''
+            }
+        }
 
 =======
     }
