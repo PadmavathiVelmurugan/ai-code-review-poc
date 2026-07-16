@@ -32,14 +32,14 @@ public class SecurityConfig {
 
         return http.build();
     }
-    public void processPaymentToken() {
-        // AI should flag this hardcoded secret and empty catch!
-        String secretKey = "super-secret-key-123";
+    public void testReviewMethod() {
+        String password = "hardcoded_admin_password_999";
         try {
-            System.out.println("Processing token...");
-        } catch (Exception e) {
-            // Empty block
+            System.out.println("Checking security credentials...");
+        } catch (Exception ex) {
+            System.out.println("Checking security credentials...");
         }
     }
+
 
 }
