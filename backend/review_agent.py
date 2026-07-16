@@ -1,13 +1,14 @@
 import os
 import shutil
 import tempfile
-import zipfile
+import tarfile  # Updated: Swapped out zipfile for tarfile
 
 from parser import read_java_files
 from chunker import chunk_java_ast
 from llm_client import review_code
 from sonarqube import get_sonar_issues
-from vectordb import add_chunk, retrieve, collection  # Explicitly import collection for count track
+from vectordb import add_chunk, retrieve, collection
+
 
 def load_changed_files(extract_folder):
     """
@@ -34,16 +35,17 @@ def load_changed_files(extract_folder):
 
     return changed_files
 
-def review_project(zip_path):
+
+def review_project(tar_path):
     extract_folder = tempfile.mkdtemp(prefix="review_")
     reviews = []
 
     try:
         ####################################################
-        # 1. Extract ZIP Archive
+        # 1. Extract TAR Archive (Fixed zipfile reference error)
         ####################################################
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(extract_folder)
+        with tarfile.open(tar_path, "r:gz") as tar_ref:
+            tar_ref.extractall(extract_folder)
 
         # Track the changed files manifest file
         changed_files = load_changed_files(extract_folder)
