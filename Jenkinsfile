@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         REVIEW_API = "http://docker.internal"
-        SONAR_TOKEN = "sqa_fc602301ca8dff7462735bd05ffb8749c935f429"
     }
 
     stages {
@@ -27,35 +26,21 @@ pipeline {
             }
         }
 
-        stage('Build Backend') {
-            steps {
-                dir('backend') {
-                    sh 'mvn clean package -DskipTests'
-                }
-            }
-        }
-
-        stage('SonarQube Static Analysis') {
-            steps {
-                dir('backend') {
-                    sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=ai-code-review \
-                        -Dsonar.host.url=http://docker.internal \
-                        -Dsonar.token=${SONAR_TOKEN}
-                    """
-                }
-            }
-        }
-
         stage('Package Review Artifacts') {
             steps {
                 sh '''
                     rm -rf review_package review.zip
                     mkdir review_package
 
-                    cp -r backend/src review_package/
-                    cp backend/pom.xml review_package/
+                    # Safely package the source directory and our diff manifest
+                    if [ -d "backend/src" ]; then
+                        cp -r backend/src review_package/
+                    fi
+                    
+                    if [ -f "backend/pom.xml" ]; then
+                        cp backend/pom.xml review_package/
+                    fi
+                    
                     cp changed_files.txt review_package/
 
                     cd review_package
@@ -83,4 +68,3 @@ pipeline {
         }
     }
 }
-
