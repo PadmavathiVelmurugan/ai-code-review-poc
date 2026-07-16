@@ -2,7 +2,9 @@ pipeline {
     agent any
 
     environment {
-       REVIEW_API = "http://localhost:8000/review"
+       environment {
+    REVIEW_API = "http://host.docker.internal:8000/review"
+}
     }
 
     stages {
