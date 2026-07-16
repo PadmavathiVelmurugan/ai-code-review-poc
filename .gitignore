@@ -1,16 +1,23 @@
-# Java
-target/
-*.class
-*.jar
+# Python
+.venv/
+__pycache__/
+*.pyc
 
-# Angular
-node_modules/
-dist/
-.angular/
+# Environment
+.env
+backend/.env
 
-# IDE
-.idea/
-.vscode/
-
-# OS
+# macOS
 .DS_Store
+
+# Zip files
+*.zip
+
+# Temporary folders
+temp_project/
+backend/temp_project/
+uploads/
+backend/uploads/
+
+# ChromaDB
+chroma/
