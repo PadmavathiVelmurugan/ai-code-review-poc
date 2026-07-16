@@ -1,8 +1,7 @@
 pipeline {
     agent any
 
-    environment {
-       environment {
+    environment { 
     REVIEW_API = "http://host.docker.internal:8000/review"
 }
     }
