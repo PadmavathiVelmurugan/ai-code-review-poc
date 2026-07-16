@@ -29,7 +29,7 @@ pipeline {
         stage('Package Review Artifacts') {
             steps {
                 sh '''
-                    rm -rf review_package review.zip
+                    rm -rf review_package review.tar.gz
                     mkdir review_package
 
                     # Safely package the source directory and our diff manifest
@@ -43,8 +43,8 @@ pipeline {
                     
                     cp changed_files.txt review_package/
 
-                    cd review_package
-                    zip -r ../review.zip .
+                    # Create a standard tarball instead of requiring the zip utility
+                    tar -czf review.tar.gz -C review_package .
                 '''
             }
         }
@@ -55,7 +55,7 @@ pipeline {
                     echo "Sending review packet to AI Review Agent..."
                     
                     curl -X POST \
-                    -F "file=@review.zip" \
+                    -F "file=@review.tar.gz" \
                     ${REVIEW_API} \
                     -o ai-review-result.json
 
