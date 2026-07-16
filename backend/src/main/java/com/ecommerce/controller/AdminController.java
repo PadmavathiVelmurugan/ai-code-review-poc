@@ -42,4 +42,5 @@ public class AdminController {
     public List<Order> getOrders() {
         return orderRepository.findAll();
     }
+
 }
