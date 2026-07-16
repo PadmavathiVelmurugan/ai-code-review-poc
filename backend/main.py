@@ -1,7 +1,7 @@
-from fastapi import FastAPI, UploadFile, File
 import tempfile
 import shutil
 import traceback
+from fastapi import FastAPI, UploadFile, File
 
 from review_agent import review_project
 
@@ -15,16 +15,18 @@ def home():
 
 @app.post("/review")
 async def review(file: UploadFile = File(...)):
-    temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    # Updated suffix configuration to handle tarball uploads from Jenkins
+    temp_tar = tempfile.NamedTemporaryFile(delete=False, suffix=".tar.gz")
 
     try:
         print("\n========== REVIEW REQUEST ==========")
         print("Uploaded File:", file.filename)
 
-        shutil.copyfileobj(file.file, temp_zip)
-        temp_zip.close()
+        shutil.copyfileobj(file.file, temp_tar)
+        temp_tar.close()
 
-        result = review_project(temp_zip.name)
+        # Call the review agent with our temporary tarball path
+        result = review_project(temp_tar.name)
 
         return result
 
@@ -37,6 +39,6 @@ async def review(file: UploadFile = File(...)):
 
     finally:
         try:
-            shutil.os.remove(temp_zip.name)
+            shutil.os.remove(temp_tar.name)
         except:
             pass

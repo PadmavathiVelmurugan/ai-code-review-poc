@@ -1,149 +1,66 @@
 pipeline {
-
     agent any
 
-<<<<<<< HEAD
     environment {
-
-          REVIEW_API = "http://host.docker.internal:8001/review"
-
+        REVIEW_API = "http://host.docker.internal:8000/review"
     }
 
     stages {
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
-
             }
-
         }
 
-
-        // Replace your old Git Diff stage here
-        stage('Git Diff') {
-
+        stage('Git Diff Tracking') {
             steps {
-
                 sh '''
-                    git diff origin/main HEAD --name-only \
+                    git diff HEAD~1 HEAD --name-only \
                     | grep "\\.java$" \
                     > changed_files.txt || true
 
-                    echo "Changed Java Files"
-
+                    echo "--- Changed Java Files for AI Review ---"
                     cat changed_files.txt
-=======
-    stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Backend') {
-            steps {
-                dir('backend') {
-                    sh 'ls'
-                }
-            }
-        }
-
-        stage('Frontend') {
-            steps {
-                dir('frontend') {
-                    sh 'ls'
-                }
-            }
-        }
-
-        stage('AI Review') {
-            steps {
-                sh '''
-                curl http://host.docker.internal:8001/docs
->>>>>>> 02b3dc3087e17da5833c1d6c60ed3b38a6e7dc40
                 '''
             }
         }
 
-<<<<<<< HEAD
-
-        stage('Build') {
-
+        stage('Package Review Artifacts') {
             steps {
-                 dir('backend')
-                 {
-
-                sh 'mvn clean package'
-                 }
-
-            }
-
-        }
-
-
-        stage('SonarQube') {
-
-            steps {
-
                 sh '''
-                    mvn sonar:sonar \
-                    -Dsonar.projectKey=ai-code-review \
-                    -Dsonar.host.url=http://host.docker.internal:9000 \
-                    -Dsonar.login=sqa_fc602301ca8dff7462735bd05ffb8749c935f429
-                '''
-
-            }
-
-        }
-
-
-        stage('Create Review ZIP') {
-
-            steps {
-
-                sh '''
+                    rm -rf review_package review.tar.gz
                     mkdir review_package
 
-                    cp -r backend/src review_package/
-                    cp backend/pom.xml review_package/
+                    if [ -d backend/src ]; then
+                        cp -r backend/src review_package/
+                    fi
+
+                    if [ -f backend/pom.xml ]; then
+                        cp backend/pom.xml review_package/
+                    fi
+
                     cp changed_files.txt review_package/
 
-                    cd review_package
-
-                    zip -r ../review.zip .
-                     '''
-
+                    tar -czf review.tar.gz -C review_package .
+                '''
             }
-
         }
 
-
-        stage('AI Code Review') {
-
+        stage('AI Code Review Execution') {
             steps {
-
                 sh '''
-                   curl -X POST \
-                   -F "file=@review.zip" \
-                   http://host.docker.internal:8001/review \
-                   -o ai-review-result.json
+                    echo "Sending review packet to AI Review Agent..."
 
+                    curl -X POST \
+                        -F "file=@review.tar.gz" \
+                        "$REVIEW_API" \
+                        -o ai-review-result.json
 
-                  echo "AI Review Result:"
-                  cat ai-review-result.json
-                 '''
-
+                    cat ai-review-result.json
+                '''
             }
-
         }
 
     }
-
-=======
-    }
->>>>>>> 02b3dc3087e17da5833c1d6c60ed3b38a6e7dc40
 }
