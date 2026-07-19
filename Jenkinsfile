@@ -78,7 +78,7 @@ pipeline {
         stage('Generate HTML Report') {
             steps {
                 sh '''
-                    python3 scripts/generate_report.py
+                    python3 backend/generate_report.py
                 '''
             }
         }
