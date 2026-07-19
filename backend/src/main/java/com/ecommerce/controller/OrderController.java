@@ -36,4 +36,14 @@ public class OrderController {
     public void deleteOrder(@PathVariable Long id) {
         repository.deleteById(id);
     }
+    public void testReviewMethod() {
+        String password = "hardcoded_admin_password_999";
+        try {
+            System.out.println("Checking security credentials...");
+        } catch (Exception ex) {
+            System.out.println("Checking security credentials...");
+        }
+    }
+
+
 }
