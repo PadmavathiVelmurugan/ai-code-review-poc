@@ -58,6 +58,7 @@ public class Product {
         this.quantity = quantity;
     }
    //test
+   // AI Review Test
     public void testReviewMethod() {
         String password = "hardcoded_admin_password_999";
         try {
