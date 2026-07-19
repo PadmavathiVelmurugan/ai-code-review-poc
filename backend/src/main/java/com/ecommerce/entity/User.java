@@ -61,4 +61,13 @@ public class User {
     public void setRole(String role) {
         this.role = role;
     }
+    //test
+        public void testReviewMethod() {
+            String password = "hardcoded_admin_password_999";
+            try {
+                System.out.println("Checking security credentials...");
+            } catch (Exception ex) {
+                System.out.println("Checking security credentials...");
+            }
+        }
 }
