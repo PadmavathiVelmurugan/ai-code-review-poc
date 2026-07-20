@@ -173,9 +173,8 @@ pipeline {
 
                 withCredentials([
                     string(
-                        credentialsId: 'github-token',
-                         usernameVariable: 'GITHUB_USER',
-                         passwordVariable: 'GITHUB_TOKEN'
+                        credentialsId: 'github-pat',
+                        variable: 'GITHUB_TOKEN'
                     )
                 ]) {
 
@@ -199,7 +198,7 @@ pipeline {
 
             withCredentials([
                 string(
-                    credentialsId: 'github-token',
+                    credentialsId: 'github-pat',
                     variable: 'GITHUB_TOKEN'
                 )
             ]) {
@@ -222,9 +221,8 @@ pipeline {
 
             withCredentials([
                 string(
-                    credentialsId: 'github-token',
-                    usernameVariable: 'GITHUB_USER',
-                    passwordVariable: 'GITHUB_TOKEN'
+                    credentialsId: 'github-pat',
+                    variable: 'GITHUB_TOKEN'
                 )
             ]) {
 
