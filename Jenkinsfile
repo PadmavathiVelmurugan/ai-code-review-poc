@@ -123,8 +123,8 @@ pipeline {
                 }
             }
         }
-
         stage('Generate PR Comment') {
+
             when {
                 expression { env.CHANGE_ID }
             }
@@ -134,23 +134,70 @@ pipeline {
 
                     def review = readJSON file: 'ai-review-result.json'
 
-                    def body = "## 🤖 AI Code Review Result\\n\\n"
-                    body += "✅ Review Completed\\n\\n"
+                    def body = "## 🤖 AI Code Review\n\n"
 
                     review.reviews.each { file ->
 
-                        body += "### ${file.file}\\n\\n"
+                        body += "## 📄 File\n"
+                        body += "${file.file}\n\n"
+
+                        int high = 0
+                        int medium = 0
+                        int low = 0
+
+                        file.chunk_reviews.each { chunk ->
+                            chunk.review.issues.each { issue ->
+                                switch(issue.severity) {
+                                    case "Critical":
+                                    case "High":
+                                        high++
+                                        break
+                                    case "Medium":
+                                        medium++
+                                        break
+                                    case "Low":
+                                        low++
+                                        break
+                                }
+                            }
+                        }
+
+                        body += "### Summary\n\n"
+                        body += "| Severity | Count |\n"
+                        body += "|----------|------:|\n"
+                        body += "| 🔴 High | ${high} |\n"
+                        body += "| 🟡 Medium | ${medium} |\n"
+                        body += "| 🟢 Low | ${low} |\n\n"
+
+                        body += "---\n\n"
 
                         file.chunk_reviews.each { chunk ->
 
-                            body += "**Method:** ${chunk.method}\\n\\n"
+                            body += "### ${chunk.method}()\n\n"
 
                             chunk.review.issues.each { issue ->
-                                body += "- **${issue.severity}** : ${issue.description}\\n"
+
+                                String emoji = "🟢"
+
+                                if(issue.severity == "High" || issue.severity == "Critical")
+                                    emoji = "🔴"
+                                else if(issue.severity == "Medium")
+                                    emoji = "🟡"
+
+                                body += "${emoji} **${issue.severity}**\n"
+                                body += "- ${issue.description}\n"
+
+                                if(issue.recommendation){
+                                    body += "- Recommendation: ${issue.recommendation}\n"
+                                }
+
+                                body += "\n"
                             }
 
-                            body += "\\n"
+                            body += "---\n\n"
                         }
+
+                        body += "✅ **Overall Result:** AI Review Completed\n\n"
                     }
 
                     writeJSON(
@@ -158,7 +205,6 @@ pipeline {
                         json: [body: body],
                         pretty: 4
                     )
-
                 }
             }
         }
