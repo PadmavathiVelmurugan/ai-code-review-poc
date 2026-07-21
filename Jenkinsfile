@@ -154,31 +154,53 @@ pipeline {
         }
 
         stage('AI Quality Gate') {
+
             steps {
+
                 script {
 
                     def review = readJSON file: 'ai-review-result.json'
 
-                    int critical = 0
+                    def criticalIssues = 0
+
 
                     review.reviews.each { file ->
+
                         file.chunk_reviews.each { chunk ->
+
                             chunk.review.issues.each { issue ->
-                                if (issue.severity == "Critical") {
-                                    critical++
+
+                                if(issue.severity == "Critical") {
+                                    criticalIssues++
                                 }
+
                             }
+
                         }
+
                     }
 
-                    echo "Critical Issues = ${critical}"
 
-                    if (critical > 0) {
-                        error("${critical} Critical issues found")
+                    echo "Critical Issues = ${criticalIssues}"
+
+
+                    if(criticalIssues > 0){
+
+                        env.AI_REVIEW_FAILED = "true"
+
+                        echo """
+                        Quality Gate Failed
+                        Critical Issues Found: ${criticalIssues}
+
+                        Continuing pipeline for PR comment generation...
+                        """
+
                     }
 
                 }
+
             }
+
         }
 
         stage('Generate PR Comment') {
