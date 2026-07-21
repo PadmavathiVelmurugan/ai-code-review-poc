@@ -191,24 +191,33 @@ pipeline {
 
                     def review = readJSON file: 'ai-review-result.json'
 
-                    def body = "## 🤖 AI Code Review Result\\n\\n"
-                    body += "✅ Review Completed\\n\\n"
+                    def body = """## 🤖 AI Code Review Result
 
-                    review.reviews.each { file ->
+                    Review Completed
 
-                        body += "### ${file.file}\\n\\n"
+                    """
+              
+                   review.reviews.each { file ->
 
-                        file.chunk_reviews.each { chunk ->
+                       body += "### ${file.file}\n\n"
 
-                            body += "**Method:** ${chunk.method}\\n\\n"
+                       file.chunk_reviews.each { chunk ->
 
-                            chunk.review.issues.each { issue ->
-                                body += "- **${issue.severity}** : ${issue.description}\\n"
-                            }
+                           body += "**Method:** ${chunk.method}\n\n"
 
-                            body += "\\n"
-                        }
-                    }
+                           chunk.review.issues.each { issue ->
+
+                               body += """
+                   - **${issue.severity}**
+                     - Category: ${issue.category}
+                     - Line: ${issue.line}
+                     - Description: ${issue.description}
+                     - Recommendation: ${issue.recommendation}
+
+                   """
+                           }
+                       }
+                   }
 
                     writeJSON(
                         file: 'comment.json',
