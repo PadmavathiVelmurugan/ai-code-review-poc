@@ -65,7 +65,7 @@ pipeline {
 
                     echo "Branch = $BRANCH"
 
-                    ISSUE=$(echo "$BRANCH" | grep -oE "ECOM-[0-9]+" || true)
+                    ISSUE=$(echo "$BRANCH" | grep -oE "[A-Z]+-[0-9]+" || true)
 
                     if [ -z "$ISSUE" ]; then
                         echo "No Jira issue found in branch name."
@@ -82,6 +82,11 @@ pipeline {
 
                     echo "===== Jira Story ====="
                     cat jira-story.json
+
+                    if grep -q "errorMessages" jira-story.json; then
+                        echo "Unable to fetch Jira issue."
+                        exit 1
+                    fi
                     '''
                 }
             }
