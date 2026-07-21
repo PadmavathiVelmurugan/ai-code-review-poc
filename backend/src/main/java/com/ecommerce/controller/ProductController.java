@@ -41,9 +41,7 @@ public class ProductController {
             @PathVariable Long id,
             @RequestBody Product product) {
 
-        if (product.getPrice() <= 0 || product.getPrice() > 1000000) {
-            throw new IllegalArgumentException("Invalid Product Price");
-        }
+
 
         Product existing = repository.findById(id)
                 .orElseThrow();
