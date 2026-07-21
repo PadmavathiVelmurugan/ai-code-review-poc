@@ -38,6 +38,16 @@ pipeline {
                 '''
             }
         }
+        stage('Debug Environment') {
+            steps {
+                sh '''
+                    echo "BRANCH_NAME=$BRANCH_NAME"
+                    echo "CHANGE_BRANCH=$CHANGE_BRANCH"
+                    echo "CHANGE_TARGET=$CHANGE_TARGET"
+                    echo "CHANGE_ID=$CHANGE_ID"
+                '''
+            }
+        }
         stage('Fetch Jira Story') {
 
             when {
@@ -51,9 +61,16 @@ pipeline {
                 ]) {
 
                     sh '''
-                    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+                    BRANCH="$CHANGE_BRANCH"
 
-                    ISSUE=$(echo $BRANCH | grep -o "ECOM-[0-9]*")
+                    echo "Branch = $BRANCH"
+
+                    ISSUE=$(echo "$BRANCH" | grep -oE "ECOM-[0-9]+" || true)
+
+                    if [ -z "$ISSUE" ]; then
+                        echo "No Jira issue found in branch name."
+                        exit 1
+                    fi
 
                     echo "Issue = $ISSUE"
 
