@@ -24,6 +24,11 @@ def review_code(
     sonar_issues=None,
     jira_story=""
 ):
+    print("==============================")
+    print("Entering review_code")
+    print("File:", file_name)
+    print("Jira Story Length:", len(jira_story))
+    print("==============================")
     if sonar_issues is None:
         sonar_issues = []
 
@@ -95,26 +100,32 @@ Do not review code unrelated to the Jira story.
 
 Return JSON exactly in this format:
 
-{
+{{
     "file":"{file_name}",
-    "story_validation":{
+    "story_validation":{{
         "implemented": true,
         "missing_requirements":[]
-    },
+    }},
     "summary":"",
     "issues":[
-        {
+        {{
             "severity":"Critical|High|Medium|Low",
             "category":"Bug|Security|Performance|BestPractice",
             "line":0,
             "description":"",
             "recommendation":""
-        }
+        }}
     ]
-}
-"""
+}}"""
 
     try:
+        print("==============================")
+        print("Calling Groq")
+        print("File:", file_name)
+        print("Jira Story Length:", len(jira_story))
+        print("Context Length:", len(context))
+        print("==============================")
+
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
