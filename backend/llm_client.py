@@ -16,8 +16,19 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def review_code(file_name, code, context="", sonar_issues=None):
 
+def review_code(
+    file_name,
+    code,
+    context="",
+    sonar_issues=None,
+    jira_story=""
+):
+    print("==============================")
+    print("Entering review_code")
+    print("File:", file_name)
+    print("Jira Story Length:", len(jira_story))
+    print("==============================")
     if sonar_issues is None:
         sonar_issues = []
 
@@ -27,6 +38,12 @@ You are a Senior Java Code Reviewer.
 Review ONLY the provided Java code.
 
 Use the following information.
+
+====================================================
+User Story (Jira)
+====================================================
+
+{jira_story}
 
 ====================================================
 Project Context (RAG)
@@ -50,7 +67,24 @@ Current Java Code
 Instructions
 ====================================================
 
-1. Review ONLY this Java code.
+1. Review the code against the Jira user story.
+
+Verify that
+
+- the implementation satisfies the acceptance criteria
+- required validations are implemented
+- edge cases are covered
+- no acceptance criterion is missed
+
+Only then review the Java code for bugs,
+security,
+performance,
+maintainability,
+and best practices.
+
+Do not repeat SonarQube findings.
+
+Do not review code unrelated to the Jira story.
 2. Use the RAG context only to understand dependencies.
 3. Treat SonarQube findings as existing static-analysis results.
 4. Do NOT repeat SonarQube findings.
@@ -68,6 +102,10 @@ Return JSON exactly in this format:
 
 {{
     "file":"{file_name}",
+    "story_validation":{{
+        "implemented": true,
+        "missing_requirements":[]
+    }},
     "summary":"",
     "issues":[
         {{
@@ -78,10 +116,16 @@ Return JSON exactly in this format:
             "recommendation":""
         }}
     ]
-}}
-"""
+}}"""
 
     try:
+        print("==============================")
+        print("Calling Groq")
+        print("File:", file_name)
+        print("Jira Story Length:", len(jira_story))
+        print("Context Length:", len(context))
+        print("==============================")
+
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",

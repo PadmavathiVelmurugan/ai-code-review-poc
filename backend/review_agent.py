@@ -49,6 +49,22 @@ def review_project(tar_path):
 
         # Track the changed files manifest file
         changed_files = load_changed_files(extract_folder)
+        jira_story = ""
+
+        jira_file = os.path.join(
+            extract_folder,
+            "jira-story.json"
+        )
+
+        if os.path.exists(jira_file):
+
+            with open(jira_file, "r") as f:
+                jira_story = f.read()
+
+            print("Jira story loaded successfully")
+
+        else:
+            print("jira-story.json missing")
 
         ####################################################
         # 2. Extract and Filter target Java Files
@@ -109,7 +125,9 @@ def review_project(tar_path):
                     file_name=data["relative_path"],
                     code=chunk,
                     context=context,
-                    sonar_issues=sonar
+                    sonar_issues=sonar,
+                    jira_story=jira_story
+                    
                 )
 
                 chunk_reviews.append({

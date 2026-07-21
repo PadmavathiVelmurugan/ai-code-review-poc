@@ -29,6 +29,10 @@ public class ProductController {
 
     @PostMapping
     public Product saveProduct(@RequestBody Product product) {
+
+        if (product.getPrice() <= 0 || product.getPrice() > 1000000) {
+            throw new IllegalArgumentException("Invalid Product Price");
+        }
         return repository.save(product);
     }
 
@@ -37,9 +41,12 @@ public class ProductController {
             @PathVariable Long id,
             @RequestBody Product product) {
 
-        Product existing =
-                repository.findById(id)
-                        .orElseThrow();
+        if (product.getPrice() <= 0 || product.getPrice() > 1000000) {
+            throw new IllegalArgumentException("Invalid Product Price");
+        }
+
+        Product existing = repository.findById(id)
+                .orElseThrow();
 
         existing.setName(product.getName());
         existing.setDescription(product.getDescription());
@@ -52,5 +59,8 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public void deleteProduct(@PathVariable Long id) {
         repository.deleteById(id);
+
     }
+
+
 }
