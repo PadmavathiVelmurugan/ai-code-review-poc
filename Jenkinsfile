@@ -4,6 +4,7 @@ pipeline {
 
     environment {
         REVIEW_API = "http://host.docker.internal:8000/review"
+        JIRA_URL = "https://aicodereview.atlassian.net"
     }
 
     stages {
@@ -37,6 +38,37 @@ pipeline {
                 '''
             }
         }
+        stage('Fetch Jira Story') {
+
+            when {
+                expression { env.CHANGE_ID }
+            }
+
+            steps {
+                withCredentials([
+                    string(credentialsId: 'jira-email', variable: 'JIRA_EMAIL'),
+                    string(credentialsId: 'jira-api-token', variable: 'JIRA_TOKEN')
+                ]) {
+
+                    sh '''
+                    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+                    ISSUE=$(echo $BRANCH | grep -o "ECOM-[0-9]*")
+
+                    echo "Issue = $ISSUE"
+
+                    curl -s \
+                      -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+                      -H "Accept: application/json" \
+                      "$JIRA_URL/rest/api/3/issue/$ISSUE" \
+                      -o jira-story.json
+
+                    echo "===== Jira Story ====="
+                    cat jira-story.json
+                    '''
+                }
+            }
+        }
 
         stage('Package Review Artifacts') {
             steps {
@@ -53,6 +85,9 @@ pipeline {
                     fi
 
                     cp changed_files.txt review_package/
+
+                     # Copy Jira story to review package
+                     cp jira-story.json review_package/
 
                     tar -czf review.tar.gz -C review_package .
                 '''
