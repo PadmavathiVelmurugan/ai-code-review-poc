@@ -53,6 +53,16 @@ pipeline {
                 '''
             }
         }
+        stage('Generate Changed Lines') {
+            steps {
+                sh '''
+                python3 scripts/parse_patch.py git_diff.patch > changed_lines.json
+
+                echo "========== Changed Lines =========="
+                cat changed_lines.json
+                '''
+            }
+        }
         stage('Debug Environment') {
             steps {
                 sh '''
@@ -123,6 +133,7 @@ pipeline {
 
                     cp changed_files.txt review_package/
 
+                    cp changed_lines.json review_package/
 
                     if [ -f jira-story.json ]; then
                         cp jira-story.json review_package/
