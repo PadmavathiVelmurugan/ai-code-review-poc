@@ -2,17 +2,13 @@ from neo4j import GraphDatabase
 
 URI = "bolt://localhost:7687"
 USERNAME = "neo4j"
-PASSWORD = "password"   # Use your actual password
+PASSWORD = "password"   # replace if you changed it
 
-driver = GraphDatabase.driver(
-    URI,
-    auth=(USERNAME, PASSWORD)
-)
+driver = GraphDatabase.driver(URI, auth=(USERNAME, PASSWORD))
 
-def test_connection():
+try:
     with driver.session() as session:
-        result = session.run("RETURN 'Connected Successfully' AS msg")
-        print(result.single()["msg"])
-
-if __name__ == "__main__":
-    test_connection()
+        result = session.run("RETURN 'Neo4j Connected Successfully' AS message")
+        print(result.single()["message"])
+finally:
+    driver.close()

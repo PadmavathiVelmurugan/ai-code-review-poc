@@ -3,8 +3,10 @@ import json
 from dotenv import load_dotenv
 from groq import Groq
 
+
 # Load environment variables
 load_dotenv()
+
 
 # Read Groq API Key
 api_key = os.getenv("GROQ_API_KEY")
@@ -12,37 +14,194 @@ api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
     raise Exception("GROQ_API_KEY not found in .env file")
 
+
 # Initialize Groq client
 client = Groq(api_key=api_key)
+
+
+
+# ====================================================
+# AI Review Rules
+# ====================================================
+
+REVIEW_RULES = """
+
+You are reviewing enterprise Java code.
+
+Follow these rules strictly.
+
+====================================================
+Method Responsibility Rules
+====================================================
+
+1. Review only the responsibility of the provided method.
+
+2. Identify the method purpose from:
+   - method name
+   - parameters
+   - return type
+   - called services
+   - repository operations
+
+
+3. Business validations should be reviewed only when the method:
+   
+   - creates data
+   - updates data
+   - modifies database state
+   - processes transactions
+
+
+4. Read-only methods should NOT be flagged for missing:
+   
+   - create validations
+   - update validations
+   - database write rules
+5. Do not report missing functionality if another class/service owns that responsibility.
+6. Use Business Context only when a relationship exists.
+
+Example:
+
+If Neo4j shows:
+
+ProductController
+       |
+       calls
+       |
+ProductValidator
+
+
+Do not report missing validation inside ProductController.
+
+Assume validation responsibility belongs to ProductValidator.
+
+Only report an issue if no responsible class exists.
+
+
+Examples:
+
+A method containing:
+
+repository.save()
+repository.update()
+entity.setXXX()
+
+can be responsible for:
+- validation
+- business rules
+- data integrity
+
+
+A method containing:
+
+repository.find()
+repository.findAll()
+repository.get()
+
+is usually responsible for:
+- retrieval correctness
+- null handling
+- response handling
+- performance
+
+
+A method containing:
+
+repository.delete()
+
+is responsible for:
+- existence checks
+- authorization
+- deletion rules
+
+
+====================================================
+Jira Validation Rules
+====================================================
+
+5. Validate Jira acceptance criteria against only the relevant code.
+
+6. Do not report a missing requirement if another layer is responsible.
+
+Example:
+
+Controller calls:
+
+productService.save(product)
+
+and validation exists in:
+
+ProductService.validatePrice()
+
+Do not report missing validation in Controller.
+
+
+====================================================
+Issue Rules
+====================================================
+
+7. Never invent issues.
+
+8. Never force every Jira requirement into every method.
+
+9. Avoid duplicate issues.
+
+10. Report only:
+
+- Business correctness issues
+- Security issues
+- Performance issues
+- Important maintainability issues
+
+
+"""
 
 
 
 def review_code(
     file_name,
     code,
+    method_name="",
     context="",
     business_context="",
     sonar_issues=None,
     jira_story=""
 ):
+
     print("==============================")
     print("Entering review_code")
     print("File:", file_name)
+    print("Method:", method_name)
     print("Jira Story Length:", len(jira_story))
     print("==============================")
+
+
     if sonar_issues is None:
         sonar_issues = []
 
+
+
     prompt = f"""
+
 You are a Senior Java Code Reviewer.
 
 Your responsibility is to verify whether the implementation satisfies the business requirement.
+
+
+====================================================
+Review Rules
+====================================================
+
+{REVIEW_RULES}
+
+
 
 ====================================================
 User Story (Jira)
 ====================================================
 
 {jira_story}
+
 
 
 ====================================================
@@ -52,11 +211,29 @@ Business Context (Neo4j Knowledge Graph)
 {business_context}
 
 
+
+====================================================
+Current File
+====================================================
+
+{file_name}
+
+
+
+====================================================
+Current Method
+====================================================
+
+{method_name}
+
+
+
 ====================================================
 Current Java Code
 ====================================================
 
 {code}
+
 
 
 ====================================================
@@ -66,118 +243,205 @@ Related Code Context (ChromaDB RAG)
 {context}
 
 
+
 ====================================================
 SonarQube Findings
 ====================================================
 
 {json.dumps(sonar_issues, indent=2)}
 
+
+
 ====================================================
-Review Instructions
+Review Task
 ====================================================
 
-Review the implementation against the Jira requirements.
+Review the current method against the Jira story.
 
-Check:
+Focus on:
 
 - Missing business validations
 - Incorrect business rules
 - Incorrect data flow
-- Security issues
+- Security problems
 - Performance issues
 - Maintainability problems
 
-Use Neo4j context to understand relationships between classes and methods.
-
-Use RAG context only for dependency understanding.
 
 Do not repeat SonarQube findings.
 
 Return ONLY valid JSON.
 
+
+
+Expected JSON format:
+
 {{
     "file":"{file_name}",
+
+    "method":"{method_name}",
+
     "story_validation":{{
+
         "implemented": true,
+
         "missing_requirements":[]
+
     }},
+
     "summary":"",
+
     "issues":[
+
         {{
+
             "severity":"Critical|High|Medium|Low",
+
+            "confidence":0.0,
+
             "category":"Bug|Security|Performance|BestPractice",
+
             "line":0,
+
             "description":"",
+
             "recommendation":""
+
         }}
+
     ]
-}}"""
+
+}}
+
+"""
+
 
     try:
+
         print("==============================")
         print("Calling Groq")
         print("File:", file_name)
-        print("Jira Story Length:", len(jira_story))
+        print("Method:", method_name)
         print("Business Context Length:", len(business_context))
         print("==============================")
 
 
         response = client.chat.completions.create(
+
             model="llama-3.3-70b-versatile",
+
             messages=[
+
                 {
-                    "role": "user",
-                    "content": prompt
+                    "role":"user",
+                    "content":prompt
                 }
+
             ],
+
             temperature=0
+
         )
+
+
 
         content = response.choices[0].message.content.strip()
+        print("==============================")
+        print("RAW GROQ RESPONSE")
+        print(content)
+        print("==============================")
 
-        # Remove markdown if the model returns it
+
+        # Remove markdown response
         content = (
             content
-            .replace("```json", "")
-            .replace("```", "")
+            .replace("```json","")
+            .replace("```","")
             .strip()
         )
+        parsed_response = json.loads(content)
 
-        return json.loads(content)
+        print("==============================")
+        print("PARSED RESPONSE TYPE")
+        print(type(parsed_response))
+        print("==============================")
+
+        return parsed_response
+
+
 
     except json.JSONDecodeError:
+
 
         print("Invalid JSON returned by LLM")
         print(content)
 
+
         return {
-            "file": file_name,
-            "summary": "Unable to parse LLM response.",
-            "issues": [
+
+            "file":file_name,
+
+            "method":method_name,
+
+            "summary":"Unable to parse LLM response.",
+
+            "issues":[
+
                 {
-                    "severity": "Low",
-                    "category": "LLM",
-                    "line": 0,
-                    "description": "LLM returned invalid JSON.",
-                    "recommendation": "Review the raw response."
+
+                    "severity":"Low",
+
+                    "confidence":0.2,
+
+                    "category":"LLM",
+
+                    "line":0,
+
+                    "description":"LLM returned invalid JSON.",
+
+                    "recommendation":"Review raw LLM response."
+
                 }
+
             ]
+
         }
+
+
 
     except Exception as e:
 
-        print("Groq Error:", str(e))
+
+        print("Groq Error:",str(e))
+
 
         return {
-            "file": file_name,
-            "summary": "LLM request failed.",
-            "issues": [
+
+            "file":file_name,
+
+            "method":method_name,
+
+            "summary":"LLM request failed.",
+
+            "issues":[
+
                 {
-                    "severity": "High",
-                    "category": "LLM",
-                    "line": 0,
-                    "description": str(e),
-                    "recommendation": "Verify the Groq API key, network connectivity, and model configuration."
+
+                    "severity":"High",
+
+                    "confidence":1.0,
+
+                    "category":"LLM",
+
+                    "line":0,
+
+                    "description":str(e),
+
+                    "recommendation":
+                    "Verify Groq API key, network connectivity and model configuration."
+
                 }
+
             ]
+
         }

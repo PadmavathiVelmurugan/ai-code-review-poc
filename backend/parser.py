@@ -15,19 +15,6 @@ SKIP_DIRS = {
 
 
 def read_java_files(folder):
-    """
-    Reads all Java files recursively.
-
-    Returns:
-
-    [
-        {
-            "path": "/absolute/path/Test.java",
-            "code": "java source"
-        }
-    ]
-
-    """
 
     java_files = []
 
@@ -36,7 +23,6 @@ def read_java_files(folder):
 
     for root, dirs, files in os.walk(folder):
 
-        # remove ignored folders
         dirs[:] = [
             d for d in dirs
             if d not in SKIP_DIRS
@@ -60,10 +46,7 @@ def read_java_files(folder):
             )
 
 
-            print(
-                "Reading:",
-                path
-            )
+            print("Reading:", path)
 
 
             try:
@@ -87,16 +70,15 @@ def read_java_files(folder):
             except Exception as e:
 
                 print(
-                    "Skipped:",
-                    path
+                    "Failed:",
+                    path,
+                    e
                 )
-
-                print(e)
-
 
 
     print(
-        f"\nTotal Java Files Read: {len(java_files)}"
+        "Total Java Files:",
+        len(java_files)
     )
 
 
