@@ -30,10 +30,8 @@ public class ProductController {
     @PostMapping
     public Product saveProduct(@RequestBody Product product) {
 
-        if (product.getPrice() <= 0 || product.getPrice() > 1000000) {
-            throw new IllegalArgumentException("Invalid Product Price");
-        }
         return repository.save(product);
+
     }
 
     @PutMapping("/{id}")
