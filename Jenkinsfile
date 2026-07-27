@@ -3,9 +3,11 @@ pipeline {
     agent any
 
     environment {
-        REVIEW_API = "
-        \"
+
+        REVIEW_API = "http://host.docker.internal:8000/review"
+
         JIRA_URL = "https://aicodereview.atlassian.net"
+
     }
 
     stages {
