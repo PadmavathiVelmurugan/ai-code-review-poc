@@ -114,10 +114,14 @@ pipeline {
 
                     cp changed_files.txt review_package/
 
-                     # Copy Jira story to review package
-                     cp jira-story.json review_package/
+
+                    if [ -f jira-story.json ]; then
+                        cp jira-story.json review_package/
+                    fi
+
 
                     tar -czf review.tar.gz -C review_package .
+
                 '''
             }
         }
