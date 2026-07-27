@@ -26,6 +26,13 @@ pipeline {
 
                 git fetch origin ${CHANGE_TARGET}
 
+                echo "Current commit"
+                git rev-parse HEAD
+
+                echo "Target commit"
+                git rev-parse origin/${CHANGE_TARGET}
+
+
                 git diff origin/${CHANGE_TARGET} HEAD \
                 --name-only \
                 | grep "\\.java$" \
