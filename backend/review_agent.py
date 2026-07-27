@@ -79,6 +79,16 @@ def review_project(tar_path):
           with open(lines_file) as f:
            changed_lines = json.load(f)
 
+        # Normalize file paths by removing 'backend/'
+        normalized_changed_lines = {}
+
+        for path, lines in changed_lines.items():
+         clean = path.replace("\\", "/").split("backend/")[-1]
+         normalized_changed_lines[clean] = lines
+
+        changed_lines = normalized_changed_lines
+
+        print("========== Normalized Changed Lines ==========")
         print(changed_lines)
         ##########################################################
         # 3. Load Jira Story
@@ -93,9 +103,8 @@ def review_project(tar_path):
 
         if os.path.exists(jira_file):
 
-            with open(jira_file, "r") as f:
-                jira_story = f.read()
-
+            with open(jira_file) as f:
+             jira_story = json.load(f)
             print("Jira story loaded successfully")
 
         ##########################################################
@@ -154,7 +163,7 @@ def review_project(tar_path):
 
                     "relative_path": clean_path,
 
-                    "parsed": None,
+                    "parsed": parse_java_file(code),
 
                     "chunks": [],
 
@@ -174,17 +183,33 @@ def review_project(tar_path):
             print(f"\nChunking: {data['relative_path']}")
 
             chunks, metadata = chunk_java_ast(data["code"])
+            print("\n========== AST CHUNKS ==========")
+
+            for chunk in chunks:
+             print(
+              chunk["name"],
+              chunk["start_line"],
+              chunk["end_line"] )
             modified = changed_lines.get(data["relative_path"], [])
             filtered_chunks = []
             filtered_metadata = []
-
             for chunk, meta in zip(chunks, metadata):
-
+               print("Chunk type:", type(chunk))
+               print("Metadata type:", type(meta))
+               print("Metadata:", meta)
+            
                start = meta["line"]
 
                chunk_code = chunk["code"] if isinstance(chunk, dict) else chunk
 
                end = start + chunk_code.count("\n")
+               print(
+                   "Checking changed lines:",
+                    start,
+                     "-",
+                      end
+                    )
+
                if any(start <= l <= end for l in modified):
 
                  filtered_chunks.append(chunk)

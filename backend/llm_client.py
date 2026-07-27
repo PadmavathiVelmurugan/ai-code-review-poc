@@ -2,6 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from groq import Groq
+from sympy import re
 
 
 # Load environment variables
@@ -109,10 +110,13 @@ A method containing:
 
 repository.delete()
 
-is responsible for:
-- existence checks
-- authorization
-- deletion rules
+may require existence checks, authorization, or deletion rules only if they are explicitly required by:
+
+- the Jira acceptance criteria
+- the business context
+- the application architecture
+
+Do not assume these requirements automatically.
 
 
 ====================================================
@@ -152,7 +156,47 @@ Issue Rules
 - Security issues
 - Performance issues
 - Important maintainability issues
+====================================================
+Requirement Validation Rules
+====================================================
 
+11. Validate only the requirements explicitly present in:
+
+- Jira Story
+- Business Context
+- Current Method
+
+12. Never infer new business requirements.
+
+13. If a requirement is not mentioned in the Jira story or business context,
+do not report it as missing.
+
+14. If the Jira story is unrelated to the current method,
+mark:
+
+"implemented": true
+
+and
+
+"missing_requirements": []
+
+Do not invent issues.
+
+====================================================
+Review Decision Process
+====================================================
+
+Before reporting any issue, evaluate the following:
+
+1. Is this method responsible for the Jira requirement?
+2. Is the issue visible in the supplied method?
+3. Does the Business Context indicate another class owns this responsibility?
+4. Is the issue already covered by SonarQube?
+5. Is the issue explicitly required by the Jira Story?
+
+Only report an issue if all applicable answers support reporting it.
+
+Otherwise, do not report the issue.
 
 """
 
@@ -256,20 +300,47 @@ SonarQube Findings
 Review Task
 ====================================================
 
-Review the current method against the Jira story.
+Step 1 (Mandatory)
 
-Focus on:
+Before reviewing the code, determine whether the supplied method is responsible for implementing any Jira acceptance criterion.
 
-- Missing business validations
-- Incorrect business rules
-- Incorrect data flow
-- Security problems
-- Performance issues
-- Maintainability problems
+If NO:
 
+- Set
+
+"story_validation": {{
+
+  "implemented": true,
+  "missing_requirements": []
+}}
+
+- Return issues only if there is a real defect visible in this method.
+
+Do NOT invent missing Jira requirements.
+Review priority:
+
+1. Jira acceptance criteria
+2. Business correctness
+3. SonarQube findings
+4. Security
+5. Performance
+6. Maintainability
+
+Do not generate generic best-practice recommendations unless they indicate an actual defect.
 
 Do not repeat SonarQube findings.
 
+If the supplied method correctly implements its responsibility and satisfies the Jira story, return:
+
+"story_validation": {{
+    "implemented": true,
+    "missing_requirements": []
+}}
+and
+
+"issues": []
+
+Do not invent recommendations merely to populate the output.
 Return ONLY valid JSON.
 
 
@@ -339,7 +410,8 @@ Expected JSON format:
 
             ],
 
-            temperature=0
+            temperature=0,
+            response_format={"type": "json_object"}
 
         )
 
@@ -359,6 +431,10 @@ Expected JSON format:
             .replace("```","")
             .strip()
         )
+        match = re.search(r'\{.*\}', content, re.DOTALL)
+
+        if not match:
+          raise json.JSONDecodeError("No JSON found", content, 0)
         parsed_response = json.loads(content)
 
         print("==============================")

@@ -96,9 +96,11 @@ def chunk_java_ast(code):
 
 
 
-        chunks.append(method_code)
-
-
+        chunks.append({
+           "name": node.name,
+           "code": method_code,
+           "start_line": start_line,
+           "end_line": start_line + method_code.count("\n")})
 
         metadata.append(
             {
@@ -111,15 +113,18 @@ def chunk_java_ast(code):
 
     if not chunks:
 
+     chunks.append({
+        "name": "ClassBody",
+        "code": code,
+        "start_line": 1,
+        "end_line": code.count("\n") + 1
+     })
 
-        chunks.append(code)
-
-        metadata.append(
-            {
-                "method": "ClassBody",
-                "line": 1
-            }
-        )
+     metadata.append({
+        "method": "ClassBody",
+        "line": 1,
+        "end_line": code.count("\n") + 1
+     })
 
 
 
