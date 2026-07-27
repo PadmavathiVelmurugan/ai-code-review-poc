@@ -32,16 +32,24 @@ pipeline {
                 echo "Target commit"
                 git rev-parse refs/remotes/origin/${CHANGE_TARGET}
 
-
+                # Existing - Changed Java files
                 git diff \
                 refs/remotes/origin/${CHANGE_TARGET} HEAD \
                 --name-only \
                 | grep "\\.java$" \
                 > changed_files.txt || true
 
-
                 echo "========== Changed Java Files =========="
                 cat changed_files.txt || true
+
+                # NEW - Generate patch with changed line numbers
+                git diff \
+                refs/remotes/origin/${CHANGE_TARGET} HEAD \
+                --unified=0 \
+                > git_diff.patch
+
+                echo "========== Git Patch =========="
+                head -100 git_diff.patch || true
                 '''
             }
         }
