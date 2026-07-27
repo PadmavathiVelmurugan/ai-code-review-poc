@@ -2,7 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from groq import Groq
-from sympy import re
+import re
 
 
 # Load environment variables
