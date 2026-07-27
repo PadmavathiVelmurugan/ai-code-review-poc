@@ -3,7 +3,8 @@ pipeline {
     agent any
 
     environment {
-        REVIEW_API = "http://host.docker.internal:8000/review"
+        REVIEW_API = "
+        \"
         JIRA_URL = "https://aicodereview.atlassian.net"
     }
 
@@ -18,23 +19,19 @@ pipeline {
         stage('Git Diff Tracking') {
             steps {
                 sh '''
-                    echo "Previous Commit: $GIT_PREVIOUS_COMMIT"
-                    echo "Current Commit: $GIT_COMMIT"
+                echo "PR Target: ${CHANGE_TARGET}"
+                echo "PR Branch: ${CHANGE_BRANCH}"
 
-                    if [ -z "$GIT_PREVIOUS_COMMIT" ]; then
-                        echo "First Jenkins build"
+                git fetch origin ${CHANGE_TARGET}
 
-                        git diff HEAD~1 HEAD --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
-                    else
-                        git diff "$GIT_PREVIOUS_COMMIT" "$GIT_COMMIT" --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
-                    fi
+                git diff origin/${CHANGE_TARGET} HEAD \
+                --name-only \
+                | grep "\\.java$" \
+                > changed_files.txt || true
 
-                    echo "Changed Java Files"
-                    cat changed_files.txt
+
+                echo "Changed Java Files"
+                cat changed_files.txt
                 '''
             }
         }

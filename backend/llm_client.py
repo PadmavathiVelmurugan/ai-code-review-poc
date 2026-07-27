@@ -21,6 +21,7 @@ def review_code(
     file_name,
     code,
     context="",
+    business_context="",
     sonar_issues=None,
     jira_story=""
 ):
@@ -35,9 +36,7 @@ def review_code(
     prompt = f"""
 You are a Senior Java Code Reviewer.
 
-Review ONLY the provided Java code.
-
-Use the following information.
+Your responsibility is to verify whether the implementation satisfies the business requirement.
 
 ====================================================
 User Story (Jira)
@@ -45,11 +44,27 @@ User Story (Jira)
 
 {jira_story}
 
+
 ====================================================
-Project Context (RAG)
+Business Context (Neo4j Knowledge Graph)
+====================================================
+
+{business_context}
+
+
+====================================================
+Current Java Code
+====================================================
+
+{code}
+
+
+====================================================
+Related Code Context (ChromaDB RAG)
 ====================================================
 
 {context}
+
 
 ====================================================
 SonarQube Findings
@@ -58,47 +73,27 @@ SonarQube Findings
 {json.dumps(sonar_issues, indent=2)}
 
 ====================================================
-Current Java Code
+Review Instructions
 ====================================================
 
-{code}
+Review the implementation against the Jira requirements.
 
-====================================================
-Instructions
-====================================================
+Check:
 
-1. Review the code against the Jira user story.
+- Missing business validations
+- Incorrect business rules
+- Incorrect data flow
+- Security issues
+- Performance issues
+- Maintainability problems
 
-Verify that
+Use Neo4j context to understand relationships between classes and methods.
 
-- the implementation satisfies the acceptance criteria
-- required validations are implemented
-- edge cases are covered
-- no acceptance criterion is missed
-
-Only then review the Java code for bugs,
-security,
-performance,
-maintainability,
-and best practices.
+Use RAG context only for dependency understanding.
 
 Do not repeat SonarQube findings.
 
-Do not review code unrelated to the Jira story.
-2. Use the RAG context only to understand dependencies.
-3. Treat SonarQube findings as existing static-analysis results.
-4. Do NOT repeat SonarQube findings.
-5. Only report:
-   - Business logic bugs
-   - Security issues missed by SonarQube
-   - Performance improvements
-   - Maintainability issues
-   - Best practices
-6. If there are no issues, return an empty issues array.
-7. Return ONLY valid JSON.
-8. Do NOT use markdown or code fences.
-
-Return JSON exactly in this format:
+Return ONLY valid JSON.
 
 {{
     "file":"{file_name}",
@@ -123,7 +118,7 @@ Return JSON exactly in this format:
         print("Calling Groq")
         print("File:", file_name)
         print("Jira Story Length:", len(jira_story))
-        print("Context Length:", len(context))
+        print("Business Context Length:", len(business_context))
         print("==============================")
 
 
