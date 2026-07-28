@@ -278,7 +278,34 @@ Current Java Code
 
 {code}
 
+====================================================
+IMPORTANT RAG INSTRUCTIONS
+====================================================
 
+The Related Code Context contains real implementation
+retrieved from the project.
+
+Before reporting any missing functionality:
+
+1. Examine the Related Code Context.
+
+2. If another class or service already performs
+validation, business rules, discount calculation,
+audit logging, notification, authorization,
+or persistence,
+
+DO NOT report that functionality as missing in
+the current method.
+
+Assume the retrieved code is the correct implementation.
+
+Report a missing requirement ONLY if:
+
+- it is absent from both the current method
+- and the retrieved related code.
+
+The retrieved context has higher priority than
+assumptions.
 
 ====================================================
 Related Code Context (ChromaDB RAG)
