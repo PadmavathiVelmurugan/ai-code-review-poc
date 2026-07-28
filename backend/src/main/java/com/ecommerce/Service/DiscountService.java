@@ -6,12 +6,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class DiscountService {
 
-    public void applyDiscount(Product product){
+    public void applyDiscount(Product product) {
 
-        if(product.getPrice()>50000){
+        if (product.getPrice() > 50000) {
 
             product.setPrice(
-                    product.getPrice()*0.9);
+                    product.getPrice() * 0.9);
+
         }
+
     }
+
 }

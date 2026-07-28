@@ -7,18 +7,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProductValidator {
 
-    public void validate(Product product){
+    public void validate(Product product) {
 
-        if(product.getPrice() <=0 ||
-                product.getPrice()>1000000){
+        if (product.getPrice() <= 0 ||
+                product.getPrice() > 1000000) {
 
             throw new IllegalArgumentException(
                     "Invalid Product Price");
         }
 
-        if(product.getQuantity()<0){
+        if (product.getQuantity() < 0) {
+
             throw new IllegalArgumentException(
                     "Invalid Quantity");
         }
+
     }
+
 }
