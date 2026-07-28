@@ -9,7 +9,7 @@ from chunker import chunk_java_ast
 from llm_client import review_code
 from sonarqube import get_sonar_issues
 from vectordb import add_chunk, retrieve, collection
-
+from graph.graph_retriever import retrieve_graph_context
 from java_parser import parse_java_file
 from graph.graph_service import (
     store_java,
@@ -244,7 +244,9 @@ def review_project(tar_path):
                     add_chunk(
                         id=f"{data['relative_path']}_{index}",
                         code=chunk_code,
-                        file=data["relative_path"]
+                        file=data["relative_path"],
+                        class_name=data["parsed"]["name"]
+
                     )
 
                     print(f"Chunk {index} stored successfully.")
@@ -293,7 +295,15 @@ def review_project(tar_path):
 
             print("\n========== BUSINESS CONTEXT ==========")
             print(business_context)
+            graph_context = ""
 
+            if parsed:
+             related_classes = retrieve_graph_context(parsed["name"])
+
+            print("\n========== RELATED CLASSES ==========")
+            print(related_classes)
+
+            graph_context = "\n".join(related_classes)
             chunk_reviews = []
 
             ##################################################
@@ -317,7 +327,7 @@ def review_project(tar_path):
                 ##################################################
                 # Retrieve RAG Context
                 ##################################################
-
+                related_classes = retrieve_graph_context(parsed["name"])
                 context_chunks = retrieve(
 
                     chunk_code,
@@ -325,6 +335,11 @@ def review_project(tar_path):
                     exclude_file=data["relative_path"]
 
                 )
+                print("\n========== RAG RETRIEVAL ==========")
+
+                for i, c in enumerate(context_chunks):
+                 print(f"\nResult {i+1}")
+                 print(c[:800])
 
                 rag_context = "\n\n".join(context_chunks)
 

@@ -207,6 +207,7 @@ def review_code(
     code,
     method_name="",
     context="",
+    graph_context="",
     business_context="",
     sonar_issues=None,
     jira_story=""
@@ -277,6 +278,12 @@ Current Java Code
 ====================================================
 
 {code}
+====================================================
+Graph Context (Neo4j)
+====================================================
+
+{graph_context}
+
 
 ====================================================
 IMPORTANT RAG INSTRUCTIONS

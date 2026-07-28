@@ -4,13 +4,13 @@ from embedding import generate_embedding
 client = chromadb.Client()
 collection = client.get_or_create_collection(name="java_code")
 
-def add_chunk(id, code, file):
+def add_chunk(id, code, file, class_name):
     embedding = generate_embedding(code)
     collection.add(
         ids=[id],
         embeddings=[embedding.tolist()],
         documents=[code],
-        metadatas=[{"file": file}]
+        metadatas=[{"file": file, "class": class_name}]
     )
     print(f"Stored chunk: {id} | Vector Dimension: {len(embedding)}")
 
@@ -31,3 +31,24 @@ def retrieve(code, exclude_file=None):
         return []
         
     return result["documents"][0]
+def retrieve_from_classes(code, class_names):
+
+    embedding = generate_embedding(code)
+
+    docs = []
+
+    for cls in class_names:
+
+        result = collection.query(
+            query_embeddings=[embedding.tolist()],
+            n_results=2,
+            where={
+                "class": cls
+            }
+        )
+
+        if result["documents"]:
+
+            docs.extend(result["documents"][0])
+
+    return docs
