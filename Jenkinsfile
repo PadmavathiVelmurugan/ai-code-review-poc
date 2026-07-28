@@ -3,8 +3,11 @@ pipeline {
     agent any
 
     environment {
+
         REVIEW_API = "http://host.docker.internal:8000/review"
+
         JIRA_URL = "https://aicodereview.atlassian.net"
+
     }
 
     stages {
@@ -18,23 +21,45 @@ pipeline {
         stage('Git Diff Tracking') {
             steps {
                 sh '''
-                    echo "Previous Commit: $GIT_PREVIOUS_COMMIT"
-                    echo "Current Commit: $GIT_COMMIT"
+                echo "PR Target: ${CHANGE_TARGET}"
+                echo "PR Branch: ${CHANGE_BRANCH}"
 
-                    if [ -z "$GIT_PREVIOUS_COMMIT" ]; then
-                        echo "First Jenkins build"
+                git fetch origin ${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}
 
-                        git diff HEAD~1 HEAD --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
-                    else
-                        git diff "$GIT_PREVIOUS_COMMIT" "$GIT_COMMIT" --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
-                    fi
+                echo "Current commit"
+                git rev-parse HEAD
 
-                    echo "Changed Java Files"
-                    cat changed_files.txt
+                echo "Target commit"
+                git rev-parse refs/remotes/origin/${CHANGE_TARGET}
+
+                # Existing - Changed Java files
+                git diff \
+                refs/remotes/origin/${CHANGE_TARGET} HEAD \
+                --name-only \
+                | grep "\\.java$" \
+                > changed_files.txt || true
+
+                echo "========== Changed Java Files =========="
+                cat changed_files.txt || true
+
+                # NEW - Generate patch with changed line numbers
+                git diff \
+                refs/remotes/origin/${CHANGE_TARGET} HEAD \
+                --unified=0 \
+                > git_diff.patch
+
+                echo "========== Git Patch =========="
+                head -100 git_diff.patch || true
+                '''
+            }
+        }
+        stage('Generate Changed Lines') {
+            steps {
+                sh '''
+                python3 scripts/parse_patch.py git_diff.patch > changed_lines.json
+
+                echo "========== Changed Lines =========="
+                cat changed_lines.json
                 '''
             }
         }
@@ -108,10 +133,15 @@ pipeline {
 
                     cp changed_files.txt review_package/
 
-                     # Copy Jira story to review package
-                     cp jira-story.json review_package/
+                    cp changed_lines.json review_package/
+
+                    if [ -f jira-story.json ]; then
+                        cp jira-story.json review_package/
+                    fi
+
 
                     tar -czf review.tar.gz -C review_package .
+
                 '''
             }
         }
