@@ -63,3 +63,42 @@ def get_calls(type_name):
             (r["caller"], r["callee"])
             for r in result
         ]
+
+
+def get_related_java_types(class_name):
+    """
+    Returns all related Java classes for a class.
+    """
+
+    with get_session() as session:
+
+        result = session.run(
+            """
+            MATCH (t:JavaType {name:$name})
+
+            OPTIONAL MATCH (t)-[:USES]->(u:JavaType)
+            OPTIONAL MATCH (t)-[:EXTENDS]->(e:JavaType)
+
+            RETURN
+                collect(DISTINCT u.name) AS uses,
+                collect(DISTINCT e.name) AS parents
+            """,
+            name=class_name
+        )
+
+        record = result.single()
+
+        if not record:
+            return []
+
+        related = set()
+
+        related.update(
+            x for x in record["uses"] if x
+        )
+
+        related.update(
+            x for x in record["parents"] if x
+        )
+
+        return list(related)
