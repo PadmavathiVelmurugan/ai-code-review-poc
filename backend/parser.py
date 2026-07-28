@@ -1,5 +1,6 @@
 import os
 
+
 SKIP_DIRS = {
     ".git",
     ".idea",
@@ -15,25 +16,38 @@ SKIP_DIRS = {
 
 def read_java_files(folder):
 
-    java_files = {}
+    java_files = []
 
-    print("\n========== PARSER ==========")
+    print("\n========== READING JAVA FILES ==========")
+
 
     for root, dirs, files in os.walk(folder):
 
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = [
+            d for d in dirs
+            if d not in SKIP_DIRS
+        ]
+
 
         for file in files:
+
 
             if file.startswith("._"):
                 continue
 
+
             if not file.endswith(".java"):
                 continue
 
-            path = os.path.join(root, file)
+
+            path = os.path.join(
+                root,
+                file
+            )
+
 
             print("Reading:", path)
+
 
             try:
 
@@ -44,11 +58,28 @@ def read_java_files(folder):
                     errors="ignore"
                 ) as f:
 
-                    java_files[path] = f.read()
+
+                    java_files.append(
+                        {
+                            "path": path,
+                            "code": f.read()
+                        }
+                    )
+
 
             except Exception as e:
 
-                print("Skipped:", path)
-                print(e)
+                print(
+                    "Failed:",
+                    path,
+                    e
+                )
+
+
+    print(
+        "Total Java Files:",
+        len(java_files)
+    )
+
 
     return java_files

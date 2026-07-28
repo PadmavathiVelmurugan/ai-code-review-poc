@@ -3,7 +3,11 @@ pipeline {
     agent any
 
     environment {
+
         REVIEW_API = "http://host.docker.internal:8000/review"
+
+        JIRA_URL = "https://aicodereview.atlassian.net"
+
     }
 
     stages {
@@ -17,24 +21,99 @@ pipeline {
         stage('Git Diff Tracking') {
             steps {
                 sh '''
-                    echo "Previous Commit: $GIT_PREVIOUS_COMMIT"
-                    echo "Current Commit: $GIT_COMMIT"
+                echo "PR Target: ${CHANGE_TARGET}"
+                echo "PR Branch: ${CHANGE_BRANCH}"
 
-                    if [ -z "$GIT_PREVIOUS_COMMIT" ]; then
-                        echo "First Jenkins build"
+                git fetch origin ${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}
 
-                        git diff HEAD~1 HEAD --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
-                    else
-                        git diff "$GIT_PREVIOUS_COMMIT" "$GIT_COMMIT" --name-only \
-                        | grep "\\.java$" \
-                        > changed_files.txt || true
+                echo "Current commit"
+                git rev-parse HEAD
+
+                echo "Target commit"
+                git rev-parse refs/remotes/origin/${CHANGE_TARGET}
+
+                # Existing - Changed Java files
+                git diff \
+                refs/remotes/origin/${CHANGE_TARGET} HEAD \
+                --name-only \
+                | grep "\\.java$" \
+                > changed_files.txt || true
+
+                echo "========== Changed Java Files =========="
+                cat changed_files.txt || true
+
+                # NEW - Generate patch with changed line numbers
+                git diff \
+                refs/remotes/origin/${CHANGE_TARGET} HEAD \
+                --unified=0 \
+                > git_diff.patch
+
+                echo "========== Git Patch =========="
+                head -100 git_diff.patch || true
+                '''
+            }
+        }
+        stage('Generate Changed Lines') {
+            steps {
+                sh '''
+                python3 scripts/parse_patch.py git_diff.patch > changed_lines.json
+
+                echo "========== Changed Lines =========="
+                cat changed_lines.json
+                '''
+            }
+        }
+        stage('Debug Environment') {
+            steps {
+                sh '''
+                    echo "BRANCH_NAME=$BRANCH_NAME"
+                    echo "CHANGE_BRANCH=$CHANGE_BRANCH"
+                    echo "CHANGE_TARGET=$CHANGE_TARGET"
+                    echo "CHANGE_ID=$CHANGE_ID"
+                '''
+            }
+        }
+        stage('Fetch Jira Story') {
+
+            when {
+                expression { env.CHANGE_ID }
+            }
+
+            steps {
+                withCredentials([
+                    string(credentialsId: 'jira-email', variable: 'JIRA_EMAIL'),
+                    string(credentialsId: 'jira-api-token', variable: 'JIRA_TOKEN')
+                ]) {
+
+                    sh '''
+                    BRANCH="$CHANGE_BRANCH"
+
+                    echo "Branch = $BRANCH"
+
+                    ISSUE=$(echo "$BRANCH" | grep -oE "[A-Z]+-[0-9]+" || true)
+
+                    if [ -z "$ISSUE" ]; then
+                        echo "No Jira issue found in branch name."
+                        exit 1
                     fi
 
-                    echo "Changed Java Files"
-                    cat changed_files.txt
-                '''
+                    echo "Issue = $ISSUE"
+
+                    curl -s \
+                      -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+                      -H "Accept: application/json" \
+                      "$JIRA_URL/rest/api/3/issue/$ISSUE" \
+                      -o jira-story.json
+
+                    echo "===== Jira Story ====="
+                    cat jira-story.json
+
+                    if grep -q "errorMessages" jira-story.json; then
+                        echo "Unable to fetch Jira issue."
+                        exit 1
+                    fi
+                    '''
+                }
             }
         }
 
@@ -54,7 +133,15 @@ pipeline {
 
                     cp changed_files.txt review_package/
 
+                    cp changed_lines.json review_package/
+
+                    if [ -f jira-story.json ]; then
+                        cp jira-story.json review_package/
+                    fi
+
+
                     tar -czf review.tar.gz -C review_package .
+
                 '''
             }
         }
@@ -97,31 +184,53 @@ pipeline {
         }
 
         stage('AI Quality Gate') {
+
             steps {
+
                 script {
 
                     def review = readJSON file: 'ai-review-result.json'
 
-                    int critical = 0
+                    def criticalIssues = 0
+
 
                     review.reviews.each { file ->
+
                         file.chunk_reviews.each { chunk ->
+
                             chunk.review.issues.each { issue ->
-                                if (issue.severity == "Critical") {
-                                    critical++
+
+                                if(issue.severity == "Critical") {
+                                    criticalIssues++
                                 }
+
                             }
+
                         }
+
                     }
 
-                    echo "Critical Issues = ${critical}"
 
-                    if (critical > 0) {
-                        error("${critical} Critical issues found")
+                    echo "Critical Issues = ${criticalIssues}"
+
+
+                    if(criticalIssues > 0){
+
+                        env.AI_REVIEW_FAILED = "true"
+
+                        echo """
+                        Quality Gate Failed
+                        Critical Issues Found: ${criticalIssues}
+
+                        Continuing pipeline for PR comment generation...
+                        """
+
                     }
 
                 }
+
             }
+
         }
 
         stage('Generate PR Comment') {
@@ -134,24 +243,33 @@ pipeline {
 
                     def review = readJSON file: 'ai-review-result.json'
 
-                    def body = "## 🤖 AI Code Review Result\\n\\n"
-                    body += "✅ Review Completed\\n\\n"
+                    def body = """## 🤖 AI Code Review Result
 
-                    review.reviews.each { file ->
+                    Review Completed
 
-                        body += "### ${file.file}\\n\\n"
+                    """
+              
+                   review.reviews.each { file ->
 
-                        file.chunk_reviews.each { chunk ->
+                       body += "### ${file.file}\n\n"
 
-                            body += "**Method:** ${chunk.method}\\n\\n"
+                       file.chunk_reviews.each { chunk ->
 
-                            chunk.review.issues.each { issue ->
-                                body += "- **${issue.severity}** : ${issue.description}\\n"
-                            }
+                           body += "**Method:** ${chunk.method}\n\n"
 
-                            body += "\\n"
-                        }
-                    }
+                           chunk.review.issues.each { issue ->
+
+                               body += """
+                   - **${issue.severity}**
+                     - Category: ${issue.category}
+                     - Line: ${issue.line}
+                     - Description: ${issue.description}
+                     - Recommendation: ${issue.recommendation}
+
+                   """
+                           }
+                       }
+                   }
 
                     writeJSON(
                         file: 'comment.json',
@@ -173,7 +291,7 @@ pipeline {
 
                 withCredentials([
                     string(
-                        credentialsId: 'github-token',
+                        credentialsId: 'github-pat',
                         variable: 'GITHUB_TOKEN'
                     )
                 ]) {
@@ -198,7 +316,7 @@ pipeline {
 
             withCredentials([
                 string(
-                    credentialsId: 'github-token',
+                    credentialsId: 'github-pat',
                     variable: 'GITHUB_TOKEN'
                 )
             ]) {
@@ -221,7 +339,7 @@ pipeline {
 
             withCredentials([
                 string(
-                    credentialsId: 'github-token',
+                    credentialsId: 'github-pat',
                     variable: 'GITHUB_TOKEN'
                 )
             ]) {

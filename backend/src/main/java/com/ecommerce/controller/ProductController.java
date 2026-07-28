@@ -1,7 +1,7 @@
 package com.ecommerce.controller;
 
+import com.ecommerce.Service.ProductService;
 import com.ecommerce.entity.Product;
-import com.ecommerce.repository.ProductRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,25 +11,25 @@ import java.util.List;
 @CrossOrigin("*")
 public class ProductController {
 
-    private final ProductRepository repository;
+    private final ProductService service;
 
-    public ProductController(ProductRepository repository) {
-        this.repository = repository;
+    public ProductController(ProductService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Product> getAllProducts() {
-        return repository.findAll();
+        return service.getAllProducts();
     }
 
     @GetMapping("/{id}")
     public Product getProduct(@PathVariable Long id) {
-        return repository.findById(id).orElse(null);
+        return service.getProduct(id);
     }
 
     @PostMapping
     public Product saveProduct(@RequestBody Product product) {
-        return repository.save(product);
+        return service.saveProduct(product);
     }
 
     @PutMapping("/{id}")
@@ -37,20 +37,12 @@ public class ProductController {
             @PathVariable Long id,
             @RequestBody Product product) {
 
-        Product existing =
-                repository.findById(id)
-                        .orElseThrow();
-
-        existing.setName(product.getName());
-        existing.setDescription(product.getDescription());
-        existing.setPrice(product.getPrice());
-        existing.setQuantity(product.getQuantity());
-
-        return repository.save(existing);
+        return service.updateProduct(id, product);
     }
 
     @DeleteMapping("/{id}")
     public void deleteProduct(@PathVariable Long id) {
-        repository.deleteById(id);
+        service.deleteProduct(id);
     }
+
 }

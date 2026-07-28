@@ -33,36 +33,55 @@ for review in data["reviews"]:
 
     for chunk in review["chunk_reviews"]:
 
+     html += f"""
+     <h3>
+     Method: {chunk['method']}
+     </h3>
+     """
+
+     # Add the summary here
+     summary = chunk["review"].get("summary", "")
+
+     if summary:
         html += f"""
-        <h3>
-        Method: {chunk['method']}
-        </h3>
+        <p>
+        <b>Summary:</b> {summary}
+        </p>
         """
 
-        for issue in chunk["review"]["issues"]:
+     # Get issues
+     issues = chunk["review"].get("issues", [])
+
+     if not issues:
+        html += """
+        <p style="color:green;">
+        <b>✅ No issues found. No recommendations.</b>
+        </p>
+        <hr>
+        """
+     else:
+        for issue in issues:
 
             html += f"""
 
             <p>
-            <b>
-            Severity:
-            </b>
+
+            <b>Severity:</b>
             {issue['severity']}
 
             <br>
 
-            <b>
-            Description:
-            </b>
+            <b>Category:</b>
+            {issue.get('category', '-')}
 
+            <br>
+
+            <b>Description:</b>
             {issue['description']}
 
             <br>
 
-            <b>
-            Recommendation:
-            </b>
-
+            <b>Recommendation:</b>
             {issue['recommendation']}
 
             </p>
@@ -70,7 +89,6 @@ for review in data["reviews"]:
             <hr>
 
             """
-
 
 html+="</body></html>"
 

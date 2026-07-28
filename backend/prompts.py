@@ -29,17 +29,18 @@ For every issue provide:
 
 Return JSON only.
 
-{
+{{
  "score":90,
  "issues":[
-   {
+   {{
       "severity":"",
       "line":"",
       "issue":"",
       "recommendation":""
-   }
+   }}
  ]
-}
+}}
+
 Code:
 
 {code}
